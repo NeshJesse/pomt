@@ -1,26 +1,139 @@
+/* app/globals.css */
+
 @import "tailwindcss";
 
+/* =========================================================
+   Theme Tokens
+   ========================================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Dark theme — default */
+  --color-canvas: #15161b;
+  --color-surface: #1e2029;
+  --color-surface-raised: #262835;
+
+  --color-ink: #f1efe8;
+  --color-muted: #8c8e9b;
+
+  --color-ember: #ff7a45;
+  --color-gold: #f0b429;
+
+  --ring-track: rgba(241, 239, 232, 0.08);
+
+  /* Fonts */
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
+
+/* =========================================================
+   Light Theme
+   =========================================================
+   
+   Intentionally warm rather than a direct inversion of dark.
+   Brand colors remain recognizable while the surfaces become
+   cream/white and text becomes charcoal.
+   */
+
+[data-theme="light"] {
+  --color-canvas: #faf6f0;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f2ece3;
+
+  --color-ink: #241f1a;
+  --color-muted: #7a6f63;
+
+  --color-ember: #e8672f;
+  --color-gold: #c98f14;
+
+  --ring-track: rgba(36, 31, 26, 0.08);
+}
+
+/* =========================================================
+   Tailwind v4 Theme
+   ========================================================= */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: var(--color-canvas);
+  --color-surface: var(--color-surface);
+  --color-surface-raised: var(--color-surface-raised);
+
+  --color-ink: var(--color-ink);
+  --color-muted: var(--color-muted);
+
+  --color-ember: var(--color-ember);
+  --color-gold: var(--color-gold);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+
+  --radius-card: 1.25rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* =========================================================
+   Base
+   ========================================================= */
+
+html,
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+html {
+  color-scheme: dark;
+  transition: background-color 0.2s ease;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+/* =========================================================
+   Typography Utilities
+   ========================================================= */
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   Global Box Sizing
+   ========================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   Reduced Motion
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html,
+  body {
+    transition: none;
+  }
 }
