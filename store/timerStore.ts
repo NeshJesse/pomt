@@ -13,6 +13,10 @@ interface ActiveTimer {
   goalId: string;
   startedAt: number;
   plannedSeconds: number;
+  /** Timestamp the session was paused at, or null if currently running.
+   * On resume, startedAt is shifted forward by the paused duration so the
+   * wall-clock math stays correct without needing a separate accumulator. */
+  pausedAt: number | null;
 }
 
 interface TimerState {
@@ -20,10 +24,13 @@ interface TimerState {
   hydrated: boolean;
   hydrate: () => Promise<void>;
   start: (params: { taskId: string; goalId: string; plannedMinutes: number }) => Promise<void>;
+  pause: () => void;
+  resume: () => void;
   complete: () => Promise<void>;
   cancel: () => Promise<void>;
   remainingSeconds: () => number;
   elapsedSeconds: () => number;
+  isPaused: () => boolean;
 }
 
 const STORAGE_KEY = "piece-of-my-time:active-timer";
@@ -40,6 +47,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
 
   hydrate: async () => {
     if (typeof window === "undefined") return;
+    if (get().hydrated) return; // idempotent — safe to call from multiple mount points
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       try {
@@ -77,9 +85,31 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       goalId,
       startedAt,
       plannedSeconds: plannedMinutes * 60,
+      pausedAt: null,
     };
     persistActive(active);
     set({ active });
+  },
+
+  pause: () => {
+    const { active } = get();
+    if (!active || active.pausedAt) return;
+    const next: ActiveTimer = { ...active, pausedAt: Date.now() };
+    persistActive(next);
+    set({ active: next });
+  },
+
+  resume: () => {
+    const { active } = get();
+    if (!active || !active.pausedAt) return;
+    const pausedDuration = Date.now() - active.pausedAt;
+    const next: ActiveTimer = {
+      ...active,
+      startedAt: active.startedAt + pausedDuration,
+      pausedAt: null,
+    };
+    persistActive(next);
+    set({ active: next });
   },
 
   complete: async () => {
@@ -90,17 +120,23 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     await finalize(get, set, "cancelled");
   },
 
+  isPaused: () => {
+    return get().active?.pausedAt != null;
+  },
+
   remainingSeconds: () => {
     const { active } = get();
     if (!active) return 0;
-    const elapsed = Math.floor((Date.now() - active.startedAt) / 1000);
-    return Math.max(0, active.plannedSeconds - elapsed);
+    return Math.max(0, active.plannedSeconds - get().elapsedSeconds());
   },
 
   elapsedSeconds: () => {
     const { active } = get();
     if (!active) return 0;
-    return Math.floor((Date.now() - active.startedAt) / 1000);
+    // While paused, freeze the clock at the moment pause() was called
+    // instead of continuing to advance against Date.now().
+    const referenceNow = active.pausedAt ?? Date.now();
+    return Math.floor((referenceNow - active.startedAt) / 1000);
   },
 }));
 
@@ -111,8 +147,8 @@ async function finalize(
 ) {
   const { active } = get();
   if (!active) return;
+  const elapsedSeconds = get().elapsedSeconds();
   const completedAt = Date.now();
-  const elapsedSeconds = Math.floor((completedAt - active.startedAt) / 1000);
   const actualMinutes = Math.round(elapsedSeconds / 60);
 
   if (elapsedSeconds < MIN_SESSION_SECONDS) {

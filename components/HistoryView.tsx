@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type TimeLog } from "@/lib/db";
-import { dayKey } from "@/lib/streaks";
+import { computeStreaks, dayKey } from "@/lib/streaks";
+import StreakBadge from "./StreakBadge";
 
 const WEEKS = 18;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -77,6 +78,8 @@ export default function HistoryView() {
     return totals;
   }, [logs, range]);
 
+  const streak = useMemo(() => (logs ? computeStreaks(logs) : { current: 0, longest: 0 }), [logs]);
+
   if (!logs || !goals || !tasks) {
     return <p className="text-muted text-sm">Loading history…</p>;
   }
@@ -84,7 +87,13 @@ export default function HistoryView() {
   return (
     <div className="space-y-10">
       <section>
-        <h2 className="font-display italic text-lg text-ink mb-3">Days you showed up</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display italic text-lg text-ink">Days you showed up</h2>
+          {/* The detailed streak numbers live here rather than on Home or
+              the sidebar, per the review's guidance to keep gamification
+              from overpowering the emotional core of the product. */}
+          <StreakBadge current={streak.current} longest={streak.longest} />
+        </div>
         <div className="flex gap-1 overflow-x-auto pb-1">
           {weeks.map((week, wi) => (
             <div key={wi} className="flex flex-col gap-1">

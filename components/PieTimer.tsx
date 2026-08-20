@@ -57,7 +57,7 @@ export default function PieTimer({ elapsedSeconds, plannedSeconds, color, size =
           d={slicePath(cx, cy, r, angle)}
           fill={color}
           fillOpacity={isOvertime ? 0.45 : 0.9}
-          style={{ transition: "d 0.6s cubic-bezier(0.4, 0, 0.2, 1)" }}
+          className="pie-slice"
         />
         <circle cx={cx} cy={cy} r={r * 0.62} fill="var(--color-canvas)" />
       </svg>

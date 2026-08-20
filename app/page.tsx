@@ -1,36 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
-import { useTimerStore } from "@/store/timerStore";
 import Mascot from "@/components/Mascot";
 import Greeting from "@/components/Greeting";
 import PrimaryTimeAction from "@/components/PrimaryTimeAction";
 import TodayProgress from "@/components/TodayProgress";
 import TaskGrid from "@/components/TaskGrid";
-import ActiveTimerBar from "@/components/ActiveTimerBar";
 import CreateGoalModal from "@/components/CreateGoalModal";
 
 const USER_NAME = "Nehemiah";
 
 export default function Home() {
-  const { active, hydrate, hydrated } = useTimerStore();
   const [goalModalOpen, setGoalModalOpen] = useState(false);
-
-  useEffect(() => {
-    hydrate();
-  }, [hydrate]);
-
-  const tasks = useLiveQuery(() => db.tasks.toArray(), []);
   const goals = useLiveQuery(() => db.goals.filter((g) => !g.archived).toArray(), []);
-
-  const activeTask = active && tasks?.find((t) => t.id === active.taskId);
-  const activeGoal = active && goals?.find((g) => g.id === active.goalId);
-
-  // Note: returns null before hydration to avoid a flash of "no active timer"
-  // state. Goes away once Phase 5 (Focus Session) replaces the bottom bar.
-  if (!hydrated) return null;
 
   return (
     <div className="max-w-5xl mx-auto px-6 md:px-10 py-6 md:py-10">
@@ -75,10 +59,6 @@ export default function Home() {
       </div>
 
       <CreateGoalModal open={goalModalOpen} onClose={() => setGoalModalOpen(false)} />
-
-      {active && activeTask && activeGoal && (
-        <ActiveTimerBar task={activeTask} goal={activeGoal} />
-      )}
     </div>
   );
 }

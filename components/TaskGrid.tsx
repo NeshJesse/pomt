@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { useTimerStore } from "@/store/timerStore";
@@ -8,6 +9,7 @@ import CreateTaskModal from "./CreateTaskModal";
 import CreateGoalModal from "./CreateGoalModal";
 
 export default function TaskGrid({ goalFilter }: { goalFilter?: string }) {
+  const router = useRouter();
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
 
@@ -20,6 +22,11 @@ export default function TaskGrid({ goalFilter }: { goalFilter?: string }) {
   const goalMap = new Map((goals ?? []).map((g) => [g.id, g]));
   const visibleTasks = (tasks ?? []).filter((t) => !goalFilter || t.goalId === goalFilter);
 
+  async function handleStart(taskId: string, goalId: string, plannedMinutes: number) {
+    await start({ taskId, goalId, plannedMinutes });
+    router.push("/focus");
+  }
+
   if (!tasks) return <p className="text-muted text-sm">Loading tasks…</p>;
 
   return (
@@ -31,7 +38,7 @@ export default function TaskGrid({ goalFilter }: { goalFilter?: string }) {
           <button
             key={task.id}
             disabled={!!active}
-            onClick={() => start({ taskId: task.id, goalId: goal.id, plannedMinutes: task.defaultMinutes })}
+            onClick={() => handleStart(task.id, goal.id, task.defaultMinutes)}
             className="group rounded-card bg-surface hover:bg-surface-raised transition-colors p-4 text-left disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span
