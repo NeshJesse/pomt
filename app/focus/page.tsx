@@ -27,8 +27,8 @@ export default function FocusSessionPage() {
     cancel,
     remainingSeconds,
     elapsedSeconds,
-    isPaused,
   } = useTimerStore();
+  const paused = useTimerStore((state) => state.active?.pausedAt != null);
 
   const [, forceTick] = useState(0);
   const [justCompleted, setJustCompleted] = useState<JustCompleted | null>(null);
@@ -105,7 +105,7 @@ export default function FocusSessionPage() {
       </div>
 
       <TimerControls
-        paused={isPaused()}
+        paused={paused}
         onPause={pause}
         onResume={resume}
         onFinish={handleFinish}

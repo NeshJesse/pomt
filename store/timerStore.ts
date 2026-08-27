@@ -13,9 +13,12 @@ interface ActiveTimer {
   goalId: string;
   startedAt: number;
   plannedSeconds: number;
+  /** Total seconds already accumulated before the current running segment began. */
+  elapsedBeforePause: number;
   /** Timestamp the session was paused at, or null if currently running.
-   * On resume, startedAt is shifted forward by the paused duration so the
-   * wall-clock math stays correct without needing a separate accumulator. */
+   * When resumed, we keep the current run segment anchored to "now" and carry
+   * forward the accumulated elapsed time instead of shifting the original start
+   * timestamp. This avoids drift and makes pause/resume stable. */
   pausedAt: number | null;
 }
 
@@ -85,6 +88,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       goalId,
       startedAt,
       plannedSeconds: plannedMinutes * 60,
+      elapsedBeforePause: 0,
       pausedAt: null,
     };
     persistActive(active);
@@ -94,7 +98,11 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   pause: () => {
     const { active } = get();
     if (!active || active.pausedAt) return;
-    const next: ActiveTimer = { ...active, pausedAt: Date.now() };
+    const next: ActiveTimer = {
+      ...active,
+      elapsedBeforePause: get().elapsedSeconds(),
+      pausedAt: Date.now(),
+    };
     persistActive(next);
     set({ active: next });
   },
@@ -102,10 +110,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   resume: () => {
     const { active } = get();
     if (!active || !active.pausedAt) return;
-    const pausedDuration = Date.now() - active.pausedAt;
     const next: ActiveTimer = {
       ...active,
-      startedAt: active.startedAt + pausedDuration,
+      startedAt: Date.now(),
       pausedAt: null,
     };
     persistActive(next);
@@ -133,10 +140,10 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   elapsedSeconds: () => {
     const { active } = get();
     if (!active) return 0;
-    // While paused, freeze the clock at the moment pause() was called
-    // instead of continuing to advance against Date.now().
-    const referenceNow = active.pausedAt ?? Date.now();
-    return Math.floor((referenceNow - active.startedAt) / 1000);
+    if (active.pausedAt != null) {
+      return active.elapsedBeforePause;
+    }
+    return active.elapsedBeforePause + Math.floor((Date.now() - active.startedAt) / 1000);
   },
 }));
 

@@ -14,7 +14,8 @@ import PieTimer from "./PieTimer";
 export default function ActiveTimerBar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { active, hydrate, elapsedSeconds } = useTimerStore();
+  const { active, hydrate, elapsedSeconds, resume } = useTimerStore();
+  const paused = useTimerStore((state) => state.active?.pausedAt != null);
   const [, forceTick] = useState(0);
 
   useEffect(() => {
@@ -34,7 +35,13 @@ export default function ActiveTimerBar() {
 
   return (
     <button
-      onClick={() => router.push("/focus")}
+      onClick={() => {
+        if (paused) {
+          resume();
+          return;
+        }
+        router.push("/focus");
+      }}
       className="fixed bottom-16 md:bottom-0 inset-x-0 z-30 bg-surface-raised border-t border-white/5 px-6 py-3 flex items-center gap-4 text-left hover:bg-surface transition-colors"
     >
       <PieTimer elapsedSeconds={elapsedSeconds()} plannedSeconds={active.plannedSeconds} color={goal.color} size={44} />
@@ -45,7 +52,7 @@ export default function ActiveTimerBar() {
         </div>
       </div>
       <span className="text-xs text-muted flex items-center gap-0.5 shrink-0">
-        Resume focus
+        {paused ? "Resume" : "Resume focus"}
         <ChevronRight size={14} />
       </span>
     </button>
